@@ -61,7 +61,10 @@ async def generate_sql_with_openrouter(
     system_prompt = (
         f"{schema_ctx}\n\n"
         "Generate a single, syntactically correct SQLite query answering the user's question.\n"
-        "Return ONLY the SQL code inside a ```sql ... ``` block. Do not provide prose explanations."
+        "GUIDELINES:\n"
+        "- For time series, trends, or lookups across months/years, ALWAYS include 'date' alongside 'value' (aliased appropriately, e.g. value AS unemployment_rate) and ORDER BY date ASC so charts can render a chronological line graph.\n"
+        "- For region comparisons, rankings, or group averages, ALWAYS include the 'region' column.\n"
+        "- Return ONLY the SQL code inside a ```sql ... ``` block. Do not provide prose explanations."
     )
 
     payload = {

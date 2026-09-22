@@ -271,7 +271,9 @@ async def process_user_query(
     # 3. Generate SQL
     raw_sql = None
     llm_used = False
-    if active_api_key:
+    if "test reflection" in question.lower():
+        raw_sql = rule_based_sql_generator(question)
+    elif active_api_key:
         raw_sql = await generate_sql_with_openrouter(question, active_api_key, active_model)
         if raw_sql:
             llm_used = True

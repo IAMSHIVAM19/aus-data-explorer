@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # OpenRouter LLM Configuration
     openrouter_api_key: str = Field(default="", alias="OPENROUTER_API_KEY")
     openrouter_model: str = Field(
-        default="meta-llama/llama-3.3-70b-instruct:free",
+        default="meta-llama/llama-3.3-70b-instruct",
         alias="OPENROUTER_MODEL"
     )
 
