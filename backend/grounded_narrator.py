@@ -1,14 +1,12 @@
 """
 Grounded Insight Narrator
 Computes deterministic descriptive statistics in Python code from query results,
-then prompts the LLM (OpenRouter) or uses a deterministic template to express
+then prompts the LLM (via llm_client) or uses a deterministic template to express
 ONLY those pre-computed numbers in a clear factual sentence.
 The LLM is NEVER allowed or asked to calculate or invent numbers.
 """
 
 from typing import List, Dict, Any, Optional
-import httpx
-import json
 
 
 def compute_deterministic_stats(columns: List[str], rows: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -20,7 +18,7 @@ def compute_deterministic_stats(columns: List[str], rows: List[Dict[str, Any]]) 
 
     stats: Dict[str, Any] = {
         "count": len(rows),
-        "columns": columns
+        "columns": columns,
     }
 
     # Find numeric and date/categorical columns
@@ -33,7 +31,7 @@ def compute_deterministic_stats(columns: List[str], rows: List[Dict[str, Any]]) 
 
     primary_num = num_cols[0]
     stats["metric_column"] = primary_num
-    
+
     # Filter rows with non-null values for primary numeric
     valid_rows = [r for r in rows if isinstance(r.get(primary_num), (int, float))]
     if not valid_rows:
@@ -50,12 +48,12 @@ def compute_deterministic_stats(columns: List[str], rows: List[Dict[str, Any]]) 
     stats["min"] = {
         "value": min_val,
         "region": min_row.get("region"),
-        "date": min_row.get("date") or min_row.get("year")
+        "date": min_row.get("date") or min_row.get("year"),
     }
     stats["max"] = {
         "value": max_val,
         "region": max_row.get("region"),
-        "date": max_row.get("date") or max_row.get("year")
+        "date": max_row.get("date") or max_row.get("year"),
     }
     stats["average"] = round(avg_val, 2)
 
@@ -78,7 +76,7 @@ def compute_deterministic_stats(columns: List[str], rows: List[Dict[str, Any]]) 
             "end_period": latest.get(time_col),
             "end_value": latest_val,
             "absolute_change": abs_change,
-            "percentage_change": pct_change
+            "percentage_change": pct_change,
         }
 
     # Group rankings (if region or categorical present)
@@ -92,7 +90,7 @@ def compute_deterministic_stats(columns: List[str], rows: List[Dict[str, Any]]) 
             "bottom": [
                 {"label": str(r.get(cat_col)), "value": r[primary_num], "date": r.get("date") or r.get("year")}
                 for r in sorted(valid_rows, key=lambda x: x[primary_num])[:3]
-            ]
+            ],
         }
 
     return stats
@@ -145,64 +143,3 @@ def format_deterministic_fallback(question: str, stats: Dict[str, Any]) -> str:
         )
 
     return f"The average {metric_name} is {stats.get('average')}{unit}, ranging from a minimum of {stats['min']['value']}{unit} to a maximum of {stats['max']['value']}{unit}."
-
-
-async def generate_grounded_insight_openrouter(
-    question: str,
-    stats: Dict[str, Any],
-    api_key: Optional[str],
-    model: str = "meta-llama/llama-3.3-70b-instruct:free"
-) -> str:
-    """
-    Prompts OpenRouter LLM with rigid grounding instructions to articulate
-    the insight strictly using the supplied stats dict.
-    """
-    if not api_key:
-        return format_deterministic_fallback(question, stats)
-
-    system_prompt = (
-        "You are an analytical narrator presenting official Australian Bureau of Statistics (ABS) labour data.\n"
-        "You are given a user question and a STRICT JSON dictionary of PRE-COMPUTED statistics extracted directly from the database.\n\n"
-        "STRICT GUARDRAILS:\n"
-        "1. Formulate 1 to 2 clear, natural sentences answering the user's question.\n"
-        "2. State ONLY figures, dates, and regions that explicitly exist in the COMPUTED_STATS JSON.\n"
-        "3. You are FORBIDDEN from calculating, estimating, or introducing ANY other numbers.\n"
-        "4. Never invent causes or assumptions. Stick purely to the supplied data."
-    )
-
-    user_prompt = (
-        f"User Question: {question}\n\n"
-        f"COMPUTED_STATS:\n{json.dumps(stats, indent=2)}\n\n"
-        f"Generate the grounded insight sentence:"
-    )
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "HTTP-Referer": "https://github.com/aus-gov-data-explorer",
-                "X-Title": "Aus Gov Data Explorer",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.1,
-                "max_tokens": 150
-            }
-            resp = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-            if resp.status_code == 200:
-                msg = data["choices"][0]["message"]
-                content = (msg.get("content") or "").strip()
-                if content:
-                    return content
-            else:
-                print(f"[OpenRouter Narration Warning] Status {resp.status_code}: {resp.text}")
-    except Exception as e:
-        print(f"[OpenRouter Narration Exception]: {e}")
-
-    # Seamless fallback
-    return format_deterministic_fallback(question, stats)

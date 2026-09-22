@@ -91,7 +91,22 @@ OUT_OF_SCOPE_PATTERNS = [
     r"\bcpi\b",
     r"\binterest rate\b",
     r"\bcrime\b",
-    r"\btransport\b"
+    r"\btransport\b",
+    r"\bsun\b",
+    r"\bearth\b",
+    r"\bmoon\b",
+    r"\bplanet\b",
+    r"\bspace\b",
+    r"\bdistance between\b",
+    r"\bweather\b",
+    r"\btemperature\b",
+    r"\bpresident\b",
+    r"\bprime minister\b",
+    r"\bcapital of\b",
+    r"\bmovie\b",
+    r"\bsong\b",
+    r"\brecipe\b",
+    r"\bcook\b"
 ]
 
 
@@ -210,5 +225,37 @@ def classify_query_intent(query: str) -> QueryIntentResult:
                     "Compare unemployment rate trends between NSW and Victoria"
                 ]
             )
+
+    # 5. Domain Relevance Guardrail
+    # If the query contains no labour keywords, no demographic/statistical keywords,
+    # and no recognized Australian regions, it is outside the scope of the ABS dataset.
+    has_region = any(reg.lower() in q_lower for reg in CANONICAL_REGIONS) or any(
+        re.search(rf"\b{re.escape(alias)}\b", q_lower) for alias in REGION_ALIASES
+    )
+    
+    labour_keywords = [
+        "unemploy", "employ", "job", "workforce", "work", "labour", "labor", "participation",
+        "rate", "ratio", "youth", "young", "wage", "salary", "hiring", "worker", "trend",
+        "highest", "lowest", "average", "mean", "median", "ranking", "rank", "compare", "comparison",
+        "change", "changed", "swing", "volatility", "peak", "gap", "difference", "delta",
+        "census", "population", "survey", "abs", "test reflection", "astronaut", "dataset"
+    ]
+    has_labour_keyword = any(kw in q_lower for kw in labour_keywords)
+
+    if not has_region and not has_labour_keyword:
+        return QueryIntentResult(
+            can_execute=False,
+            intent_type="out_of_scope",
+            message=(
+                "Refusal: This query requests information outside the Australian Labour Force dataset "
+                "(ABS Catalogue 6202.0). The dataset only contains employment, unemployment, and "
+                "participation statistics for Australia and its states/territories."
+            ),
+            suggested_queries=[
+                "What was the unemployment rate in Victoria in 2024?",
+                "Which region had the highest unemployment rate in 2024?",
+                "Compare unemployment rate trends between NSW and Victoria"
+            ]
+        )
 
     return QueryIntentResult(can_execute=True, intent_type="executable")

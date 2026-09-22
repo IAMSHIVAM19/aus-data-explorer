@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    volumes:
+      - ./backend/data:/app/backend/data
+      - ./data/raw:/app/data/raw
+    restart: unless-stopped
