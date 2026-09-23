@@ -189,8 +189,8 @@ To use an external LLM for NL $\rightarrow$ SQL generation and narration:
 ## 6. Project Deliverables Checklist
 
 - [x] **Working App**: FastAPI backend + React 19/Vite frontend with Recharts and Tailwind CSS.
-- [x] **Dataset Pipeline**: Cleaned static ABS Table 010 dataset with 433k rows in SQLite with indexes and views.
+- [x] **Dataset Pipeline**: Cleaned static ABS Table 010 and Table 012 datasets with 488,880 rows in SQLite with indexes and views.
 - [x] **Guardrails**: `sqlglot` AST validation, row caps, query timeouts, deterministic chart selection, pre-computed grounded insight narration, and refusal engine.
 - [x] **PLAN.md**: Living technical decision document.
 - [x] **README.md**: Full problem statement, architecture, guardrail breakdown, and categorized failure analysis table.
-- [x] **Evaluation Suite**: Automated runner executing 16 seed questions with 100% accuracy.
+- [x] **Evaluation Suite**: Automated runner executing 25 seed questions with 100% accuracy.

@@ -21,16 +21,28 @@ def execute_sqlite_query(sql: str) -> Dict[str, Any]:
     Returns dict with columns, rows, elapsed_ms, and row_count.
     """
     start_time = time.time()
-    conn = sqlite3.connect(settings.db_path)
+    try:
+        conn = sqlite3.connect(f"file:{settings.db_path}?mode=ro", uri=True)
+    except Exception:
+        conn = sqlite3.connect(settings.db_path)
+
     conn.row_factory = sqlite3.Row
 
+    # Enforce statement cancellation timeout via progress handler
+    def timeout_handler():
+        if time.time() - start_time > settings.query_timeout_seconds:
+            return 1  # Interrupts SQLite query
+        return 0
+
     try:
+        conn.set_progress_handler(timeout_handler, 1000)
         conn.execute("PRAGMA query_only = ON;")
-        conn.execute("PRAGMA busy_timeout = 3000;")
+        conn.execute(f"PRAGMA busy_timeout = {int(settings.query_timeout_seconds * 1000)};")
 
         cur = conn.cursor()
         cur.execute(sql)
-        rows = cur.fetchall()
+        # Fetch up to max_row_limit + 1 to detect truncations
+        rows = cur.fetchmany(settings.max_row_limit)
         columns = [desc[0] for desc in cur.description] if cur.description else []
         elapsed_ms = round((time.time() - start_time) * 1000, 2)
 

@@ -13,6 +13,8 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.config import settings
@@ -27,6 +29,10 @@ logger = logging.getLogger(__name__)
 _seed_questions_path = os.path.join(os.path.dirname(__file__), "seed_questions.json")
 with open(_seed_questions_path, "r") as f:
     SEED_QUESTIONS = json.load(f)
+
+# Locate frontend dist for standalone / Docker serving
+_dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend/dist"))
+_has_dist = os.path.exists(_dist_path) and os.path.isdir(_dist_path)
 
 
 @asynccontextmanager
@@ -56,6 +62,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+if _has_dist:
+    _assets_path = os.path.join(_dist_path, "assets")
+    if os.path.exists(_assets_path):
+        app.mount("/assets", StaticFiles(directory=_assets_path), name="static_assets")
+
 
 class QueryRequest(BaseModel):
     question: str
@@ -65,6 +76,8 @@ class QueryRequest(BaseModel):
 
 @app.get("/")
 def root():
+    if _has_dist and os.path.exists(os.path.join(_dist_path, "index.html")):
+        return FileResponse(os.path.join(_dist_path, "index.html"))
     return {
         "message": "Aus Gov Data Explorer Backend API is online.",
         "frontend_ui": "http://localhost:3000",

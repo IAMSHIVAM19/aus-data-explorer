@@ -16,17 +16,23 @@ import { Sparkles } from 'lucide-react';
 const PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#64748b'];
 
 const ChartRenderer = memo(({ chart }) => {
+  const unit = chart.unit || '';
+  const formatVal = (v) => {
+    if (v === null || v === undefined) return '';
+    return unit ? `${v}${unit}` : Number(v).toLocaleString();
+  };
+
   if (chart.chart_type === 'line') {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chart.data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey={chart.x_key} stroke="#64748b" fontSize={12} tickLine={false} />
-          <YAxis stroke="#64748b" fontSize={12} tickLine={false} tickFormatter={(v) => `${v}%`} />
+          <YAxis stroke="#64748b" fontSize={12} tickLine={false} tickFormatter={formatVal} />
           <Tooltip
             contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none' }}
             labelStyle={{ color: '#94a3b8', fontSize: '11px', marginBottom: '4px' }}
-            formatter={(val) => [`${val}%`, 'Rate']}
+            formatter={(val, name) => [formatVal(val), name || 'Value']}
           />
           <Legend wrapperStyle={{ paddingTop: '10px' }} />
           {chart.y_keys.map((k, idx) => (
@@ -51,11 +57,11 @@ const ChartRenderer = memo(({ chart }) => {
         <BarChart data={chart.data} margin={{ top: 10, right: 30, left: 0, bottom: 25 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
           <XAxis dataKey={chart.x_key} stroke="#64748b" fontSize={11} interval={0} angle={-20} textAnchor="end" />
-          <YAxis stroke="#64748b" fontSize={12} tickLine={false} tickFormatter={(v) => `${v}%`} />
+          <YAxis stroke="#64748b" fontSize={12} tickLine={false} tickFormatter={formatVal} />
           <Tooltip
             contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none' }}
             labelStyle={{ color: '#94a3b8', fontSize: '11px', marginBottom: '4px' }}
-            formatter={(val) => [`${val}%`, 'Unemployment Rate']}
+            formatter={(val, name) => [formatVal(val), name || 'Value']}
           />
           <Bar dataKey={chart.y_keys[0]} fill="#2563eb" radius={[6, 6, 0, 0]} />
         </BarChart>

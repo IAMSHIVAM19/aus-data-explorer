@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  ShieldCheck, Clock, CheckCircle2, AlertTriangle, HelpCircle,
+  ShieldCheck, ShieldAlert, Clock, CheckCircle2, AlertTriangle, HelpCircle,
   BarChart3, LineChart as LineChartIcon, Table as TableIcon,
   Copy, Check, ExternalLink, ChevronRight
 } from 'lucide-react';
@@ -29,7 +29,7 @@ const categories = [
 
 function AppContent() {
   const {
-    query, setQuery, loading, error, result, seedQuestions,
+    query, setQuery, loading, error, result, seedQuestions, healthInfo,
     handleRunQuery, copiedSQL, copyToClipboard,
     apiKey, setApiKey, model, setModel, showSettings, setShowSettings,
     handleSaveSettings, showDataTable, setShowDataTable
@@ -39,7 +39,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      <Header apiKey={apiKey} onOpenSettings={() => setShowSettings(true)} />
+      <Header apiKey={apiKey} onOpenSettings={() => setShowSettings(true)} healthInfo={healthInfo} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 relative overflow-hidden">
@@ -64,6 +64,52 @@ function AppContent() {
             <div>
               <h3 className="font-bold text-sm">Query Failed</h3>
               <p className="text-xs text-rose-700 mt-1">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {result && (result.status === 'validation_error' || result.status === 'execution_error') && (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-rose-950 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-start space-x-3.5">
+              <div className="p-2 bg-rose-100 rounded-xl text-rose-700 shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold uppercase tracking-wider bg-rose-200 text-rose-900 px-2 py-0.5 rounded">
+                    Security Guardrail Activated: {result.status === 'validation_error' ? 'SQL AST Validation' : 'Execution Engine'}
+                  </span>
+                  <span className="text-xs text-rose-700 font-medium">
+                    (Stopped safely after retry limit)
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-rose-950 mt-2 leading-relaxed">
+                  {result.error}
+                </p>
+                <p className="text-xs text-rose-800 mt-1">
+                  The query referenced unauthorized tables, unsupported syntax, or exceeded execution constraints. The self-healing reflection loop attempted repair but halted to guarantee database security.
+                </p>
+
+                {result.reflection_log && result.reflection_log.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-rose-200">
+                    <span className="text-xs font-semibold text-rose-900 uppercase tracking-wider block mb-2">
+                      Reflection & Diagnostics History ({result.reflection_log.length} attempts):
+                    </span>
+                    <div className="space-y-2">
+                      {result.reflection_log.map((log, i) => (
+                        <div key={i} className="text-xs bg-white/80 border border-rose-200 p-2.5 rounded-lg text-rose-900">
+                          <div className="font-semibold text-[11px] text-rose-800">
+                            Attempt {log.attempt || i + 1} Trigger: <span className="font-mono">{log.trigger}</span>
+                          </div>
+                          <div className="text-[11px] text-rose-700 mt-0.5">
+                            {log.error_message || log.error || 'Validation check failed'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -122,7 +168,32 @@ function AppContent() {
                 "{result.insight}"
               </p>
 
-              {result.stats && (
+              {result.is_forecast && result.stats ? (
+                <div className="mt-5 pt-4 border-t border-slate-700/60 flex flex-wrap gap-3 text-xs">
+                  <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
+                    <span className="text-slate-400">Method:</span>
+                    <span className="font-bold text-slate-100">{result.stats.forecast_method}</span>
+                  </div>
+                  {result.stats.last_observed_value !== undefined && (
+                    <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
+                      <span className="text-slate-400">Last Actual ({result.stats.last_observed_date}):</span>
+                      <span className="font-bold text-blue-300">{result.stats.last_observed_value}%</span>
+                    </div>
+                  )}
+                  {result.stats.projected_final_value !== undefined && (
+                    <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
+                      <span className="text-slate-400">Projected ({result.stats.projected_final_date}):</span>
+                      <span className="font-bold text-purple-300">{result.stats.projected_final_value}%</span>
+                    </div>
+                  )}
+                  {result.stats.ci_80 && (
+                    <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
+                      <span className="text-slate-400">80% CI:</span>
+                      <span className="font-bold text-emerald-400">{result.stats.ci_80[0]}% – {result.stats.ci_80[1]}%</span>
+                    </div>
+                  )}
+                </div>
+              ) : result.stats && (
                 <div className="mt-5 pt-4 border-t border-slate-700/60 flex flex-wrap gap-3 text-xs">
                   {result.stats.count !== undefined && (
                     <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
@@ -133,14 +204,16 @@ function AppContent() {
                   {result.stats.average !== undefined && (
                     <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
                       <span className="text-slate-400">Average:</span>
-                      <span className="font-bold text-emerald-400">{result.stats.average}%</span>
+                      <span className="font-bold text-emerald-400">
+                        {result.chart?.unit ? `${result.stats.average}${result.chart.unit}` : result.stats.average.toLocaleString()}
+                      </span>
                     </div>
                   )}
                   {result.stats.max && (
                     <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
                       <span className="text-slate-400">Peak:</span>
                       <span className="font-bold text-amber-300">
-                        {result.stats.max.value}% {result.stats.max.region ? `(${result.stats.max.region})` : ''}
+                        {result.chart?.unit ? `${result.stats.max.value}${result.chart.unit}` : result.stats.max.value.toLocaleString()} {result.stats.max.region ? `(${result.stats.max.region})` : ''}
                       </span>
                     </div>
                   )}
@@ -148,7 +221,7 @@ function AppContent() {
                     <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5">
                       <span className="text-slate-400">Low:</span>
                       <span className="font-bold text-blue-300">
-                        {result.stats.min.value}% {result.stats.min.region ? `(${result.stats.min.region})` : ''}
+                        {result.chart?.unit ? `${result.stats.min.value}${result.chart.unit}` : result.stats.min.value.toLocaleString()} {result.stats.min.region ? `(${result.stats.min.region})` : ''}
                       </span>
                     </div>
                   )}

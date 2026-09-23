@@ -108,10 +108,13 @@ def generate_statistical_forecast(
     if len(historical_rows) < 12:
         raise ValueError("Insufficient historical observations to fit seasonal forecasting model (minimum 12 required).")
 
-    # Sort historical rows chronologically
-    sorted_hist = sorted(historical_rows, key=lambda r: str(r[date_col]))
-    values = [float(r[val_col]) for r in sorted_hist if r.get(val_col) is not None]
-    dates = [str(r[date_col]) for r in sorted_hist if r.get(val_col) is not None]
+    # Sort historical rows chronologically and filter nulls
+    sorted_hist = [r for r in sorted(historical_rows, key=lambda r: str(r[date_col])) if r.get(val_col) is not None]
+    values = [float(r[val_col]) for r in sorted_hist]
+    dates = [str(r[date_col]) for r in sorted_hist]
+
+    if len(values) < 12:
+        raise ValueError("Insufficient non-null historical observations to fit seasonal forecasting model (minimum 12 required).")
 
     # Fit Holt-Winters model
     level, trend, seasonals, res_var = fit_holt_winters(values, season_length=12)
@@ -135,9 +138,9 @@ def generate_statistical_forecast(
         # Ensure macroeconomic rates (e.g. unemployment) cannot be negative
         y_hat = max(0.1, y_hat)
 
-        # Standard error increases with horizon
-        compound_variance_factor += (1.0 + h * 0.05) ** 2
+        # Standard error increases with horizon (Var(y_{t+h}) = sigma^2 * (1 + sum_{j=1}^{h-1} c_j^2))
         se_h = sigma * math.sqrt(compound_variance_factor)
+        compound_variance_factor += (1.0 + h * 0.05) ** 2
 
         # Confidence bounds: 80% (z=1.282), 95% (z=1.960)
         ci_80_lower = max(0.0, round(y_hat - 1.282 * se_h, 2))

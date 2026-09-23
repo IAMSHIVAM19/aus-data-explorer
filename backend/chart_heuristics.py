@@ -61,7 +61,7 @@ def determine_chart_spec(columns: List[str], rows: List[Dict[str, Any]]) -> Dict
         val = rows[0][num_col]
         label_col = [c for c in columns if c != num_col]
         label = f"{rows[0][label_col[0]]} - {num_col}" if label_col else num_col
-        unit = "%" if "rate" in num_col.lower() else ""
+        unit = "%" if ("rate" in num_col.lower() or "ratio" in num_col.lower() or "pct" in num_col.lower()) else ""
         return {
             "chart_type": "kpi",
             "title": label.replace("_", " ").title(),
@@ -140,7 +140,7 @@ def determine_chart_spec(columns: List[str], rows: List[Dict[str, Any]]) -> Dict
             "y_keys": [num_col],
             "x_label": cat_col.title(),
             "y_label": num_col.replace('_', ' ').title(),
-            "unit": "%" if ("rate" in num_col.lower() or "ratio" in num_col.lower()) else "",
+            "unit": "%" if ("rate" in num_col.lower() or "ratio" in num_col.lower() or "pct" in num_col.lower()) else "",
             "data": rows[:50]  # limit bar rendering to top 50
         }
 

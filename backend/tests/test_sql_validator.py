@@ -121,3 +121,30 @@ class TestRowLimitEnforcement:
         )
         assert is_valid
         assert "50" in sql
+
+    def test_negative_limit_sanitized(self):
+        is_valid, sql, _ = validate_and_sanitize_sql(
+            "SELECT * FROM labour_force_monthly LIMIT -1;"
+        )
+        assert is_valid
+        assert "LIMIT 1000" in sql or "LIMIT -1" not in sql
+
+
+class TestAdvancedSqlFeatures:
+    """Test UNION support and dangerous extension functions."""
+
+    def test_union_query_allowed(self):
+        query = (
+            "SELECT date, value FROM labour_force_monthly WHERE region = 'NSW' "
+            "UNION ALL "
+            "SELECT date, value FROM labour_force_monthly WHERE region = 'Victoria' "
+            "LIMIT 50;"
+        )
+        is_valid, sql, err = validate_and_sanitize_sql(query)
+        assert is_valid, f"UNION query should be valid, got error: {err}"
+
+    def test_readfile_function_blocked(self):
+        query = "SELECT readfile('/etc/passwd') FROM labour_force_monthly;"
+        is_valid, sql, err = validate_and_sanitize_sql(query)
+        assert not is_valid
+        assert "Forbidden function" in err

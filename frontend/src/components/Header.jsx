@@ -1,7 +1,11 @@
 import React from 'react';
 import { TrendingUp, Database, Settings2 } from 'lucide-react';
 
-export default function Header({ apiKey, onOpenSettings }) {
+export default function Header({ apiKey, onOpenSettings, healthInfo }) {
+  const totalObs = healthInfo?.database?.total_observations
+    ? `${Math.round(healthInfo.database.total_observations / 1000)}k`
+    : '489k';
+
   return (
     <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -25,7 +29,7 @@ export default function Header({ apiKey, onOpenSettings }) {
         <div className="flex items-center space-x-3">
           <div className="hidden md:flex items-center text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
             <Database className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
-            <span>433k Monthly Records (1978 – 2026)</span>
+            <span>{totalObs} Observations (1978 – 2026)</span>
           </div>
 
           <button

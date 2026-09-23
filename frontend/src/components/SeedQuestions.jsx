@@ -5,6 +5,9 @@ export default function SeedQuestions({ questions, categories, activeCategory, o
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
       if (activeCategory === 'all') return true;
+      if (activeCategory === 'forecast') return q.category === 'forecast' || q.category === 'ambiguous_forecast';
+      if (activeCategory === 'reflection') return q.category === 'reflection' || q.category === 'reflection_failure';
+      if (activeCategory === 'unanswerable') return q.category === 'unanswerable' || q.category === 'out_of_scope';
       return q.category === activeCategory;
     });
   }, [questions, activeCategory]);
@@ -13,7 +16,7 @@ export default function SeedQuestions({ questions, categories, activeCategory, o
     <div className="mt-8 pt-6 border-t border-slate-100">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-          Explore Seed Questions (15+ Pre-configured Scenarios):
+          Explore Seed Questions (25 Benchmark Scenarios):
         </span>
         
         <div className="flex flex-wrap gap-1">

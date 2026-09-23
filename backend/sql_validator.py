@@ -60,8 +60,8 @@ def validate_and_sanitize_sql(sql_str: str) -> Tuple[bool, str, Optional[str]]:
     if statement is None:
         return False, "", "Could not parse statement."
 
-    # Root statement MUST be a SELECT
-    if not isinstance(statement, exp.Select):
+    # Root statement MUST be a SELECT or UNION
+    if not isinstance(statement, (exp.Select, exp.Union)):
         stmt_type = type(statement).__name__
         return False, "", f"Security Guardrail Violation: Forbidden operation '{stmt_type}'. Only SELECT statements are permitted."
 
@@ -88,7 +88,7 @@ def validate_and_sanitize_sql(sql_str: str) -> Tuple[bool, str, Optional[str]]:
     # Note: We use AST-level validation only, not naive string matching, to avoid false positives
     for func in statement.find_all(exp.Anonymous):
         func_name = func.name.lower() if hasattr(func, "name") else ""
-        if func_name in {"load_extension", "fts3_tokenizer"}:
+        if func_name in {"load_extension", "fts3_tokenizer", "readfile", "writefile"}:
             return False, "", f"Security Guardrail Violation: Forbidden function '{func_name}' detected."
 
     # Enforce LIMIT
@@ -97,8 +97,8 @@ def validate_and_sanitize_sql(sql_str: str) -> Tuple[bool, str, Optional[str]]:
         statement = statement.limit(MAX_ROW_LIMIT)
     else:
         try:
-            limit_val = int(limit_clause.expression.name)
-            if limit_val > MAX_ROW_LIMIT:
+            limit_val = int(limit_clause.expression.sql())
+            if limit_val <= 0 or limit_val > MAX_ROW_LIMIT:
                 statement.args["limit"] = exp.Limit(expression=exp.Literal.number(MAX_ROW_LIMIT))
         except (ValueError, AttributeError):
             statement.args["limit"] = exp.Limit(expression=exp.Literal.number(MAX_ROW_LIMIT))

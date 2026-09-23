@@ -90,7 +90,7 @@ This document tracks technical decisions, architecture, schema trade-offs, guard
 
 ## 5. Milestone Progress Log
 
-- [x] **Milestone 1**: Dataset acquired, cleaned, and ingested into SQLite database (`aus_labour_force.db`, 433k rows).
+- [x] **Milestone 1**: Dataset acquired, cleaned, and ingested into SQLite database (`aus_labour_force.db`, 488,880 rows across Table 010 and Table 012).
 - [x] **Milestone 2**: Compact schema context builder implemented (`schema_context.py`).
 - [x] **Milestone 3**: SQL validation layer built with `sqlglot` and OpenRouter generator (`sql_validator.py`, `query_service.py`).
 - [x] **Milestone 4**: Deterministic chart heuristics engine implemented (`chart_heuristics.py`).
@@ -98,4 +98,4 @@ This document tracks technical decisions, architecture, schema trade-offs, guard
 - [x] **Milestone 6**: Explicit intent classification and refusal path implemented (`intent_classifier.py`).
 - [x] **Milestone 7**: FastAPI endpoints wired and tested (`main.py`).
 - [x] **Milestone 8**: React/Vite frontend with Tailwind, Recharts, seed question pills, and settings modal created (`frontend/src/App.jsx`).
-- [x] **Milestone 9**: Automated evaluation suite run across 16 seed questions; failure analysis documented.
+- [x] **Milestone 9**: Automated evaluation suite run across 25 seed questions; failure analysis documented.

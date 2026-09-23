@@ -57,27 +57,29 @@ def compute_deterministic_stats(columns: List[str], rows: List[Dict[str, Any]]) 
     }
     stats["average"] = round(avg_val, 2)
 
-    # Time series trends
+    # Time series trends (only if single series or single region)
     if date_cols and len(valid_rows) > 1:
         time_col = date_cols[0]
-        sorted_by_time = sorted(valid_rows, key=lambda x: str(x.get(time_col, "")))
-        earliest = sorted_by_time[0]
-        latest = sorted_by_time[-1]
+        distinct_cats = set(r.get(cat_cols[0]) for r in valid_rows if r.get(cat_cols[0]) is not None) if cat_cols else set()
+        if len(distinct_cats) <= 1:
+            sorted_by_time = sorted(valid_rows, key=lambda x: str(x.get(time_col, "")))
+            earliest = sorted_by_time[0]
+            latest = sorted_by_time[-1]
 
-        earliest_val = earliest[primary_num]
-        latest_val = latest[primary_num]
-        abs_change = round(latest_val - earliest_val, 2)
-        pct_change = round(((latest_val - earliest_val) / earliest_val) * 100, 1) if earliest_val != 0 else 0.0
+            earliest_val = earliest[primary_num]
+            latest_val = latest[primary_num]
+            abs_change = round(latest_val - earliest_val, 2)
+            pct_change = round(((latest_val - earliest_val) / earliest_val) * 100, 1) if earliest_val != 0 else 0.0
 
-        stats["time_series"] = {
-            "time_column": time_col,
-            "start_period": earliest.get(time_col),
-            "start_value": earliest_val,
-            "end_period": latest.get(time_col),
-            "end_value": latest_val,
-            "absolute_change": abs_change,
-            "percentage_change": pct_change,
-        }
+            stats["time_series"] = {
+                "time_column": time_col,
+                "start_period": earliest.get(time_col),
+                "start_value": earliest_val,
+                "end_period": latest.get(time_col),
+                "end_value": latest_val,
+                "absolute_change": abs_change,
+                "percentage_change": pct_change,
+            }
 
     # Group rankings (if region or categorical present)
     if cat_cols:
@@ -128,10 +130,11 @@ def format_deterministic_fallback(question: str, stats: Dict[str, Any]) -> str:
         abs_delta = abs(delta)
 
         change_phrase = f"by {abs_delta} percentage points" if is_rate else f"by {abs_delta:g} ({abs(ts['percentage_change'])}%)"
+        peak_str = f" in {stats['max']['date']}" if stats['max'].get('date') else ""
 
         return (
             f"Between {start_p} and {end_p}, {metric_name} {direction} {change_phrase} "
-            f"from {start_v}{unit} to {end_v}{unit} (peaking at {stats['max']['value']}{unit} in {stats['max']['date']})."
+            f"from {start_v}{unit} to {end_v}{unit} (peaking at {stats['max']['value']}{unit}{peak_str})."
         )
 
     ranking = stats.get("ranking")

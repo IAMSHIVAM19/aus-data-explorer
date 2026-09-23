@@ -9,7 +9,13 @@ Outputs a structured JSON log and formatted Markdown table for README.md.
 
 import asyncio
 import json
+import os
+import sys
 import time
+
+# Ensure project root is on sys.path for direct execution
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from typing import List, Dict, Any
 from backend.query_service import process_user_query
 from backend.main import SEED_QUESTIONS
